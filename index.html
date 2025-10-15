@@ -19,20 +19,74 @@
       justify-content: center;
       align-items: center;
       padding: 2rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     }
     .weather-card {
-      max-width: 400px;
+      max-width: 420px;
       width: 100%;
-      padding: 1.5rem;
+      padding: 1.5rem 1.5rem 2rem 1.5rem;
       border-radius: 0.5rem;
       box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1);
       background: white;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    h2 {
+      font-weight: 600;
+    }
+    #result {
+      margin-top: 0.5rem;
+    }
+    .current-weather, .forecast-section {
+      text-align: center;
+    }
+    .weather-icon {
+      vertical-align: middle;
+      width: 48px;
+      height: 48px;
+      margin-right: 0.5rem;
+    }
+    .temp-toggle {
+      margin-bottom: 1rem;
+      user-select: none;
+    }
+    .temp-toggle label {
+      cursor: pointer;
+      margin-right: 1.5rem;
+      font-weight: 500;
+    }
+    .forecast-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+    .forecast-table th,
+    .forecast-table td {
+      padding: 0.4rem;
+      border: 1px solid #dee2e6;
+      vertical-align: middle;
+      font-size: 0.9rem;
+    }
+    .forecast-table th {
+      background-color: #e9ecef;
+      font-weight: 600;
+    }
+    .error-message {
+      color: #dc3545;
+      font-weight: 600;
+    }
+    small {
+      display: block;
+      margin-top: 0.25rem;
+      color: #6c757d;
     }
   </style>
 </head>
 <body>
   <div class="weather-card">
-    <h2 class="mb-4 text-center">Check Current Weather</h2>
+    <h2 class="mb-2 text-center">Check Current Weather</h2>
     <form id="weather-form" class="mb-3" autocomplete="off">
       <div class="mb-3">
         <label for="city-input" class="form-label">City Name</label>
@@ -42,14 +96,86 @@
           id="city-input"
           placeholder="Enter city name"
           required
+          aria-label="Enter city name"
         />
       </div>
-      <button type="submit" class="btn btn-primary w-100">Get Weather</button>
+      <button type="submit" class="btn btn-primary w-100" aria-label="Get weather for city">Get Weather</button>
     </form>
-    <div id="result" class="text-center"></div>
+
+    <div class="temp-toggle d-flex justify-content-center" aria-label="Temperature unit toggle">
+      <label>
+        <input type="radio" name="unit" value="celsius" checked /> °C
+      </label>
+      <label>
+        <input type="radio" name="unit" value="fahrenheit" /> °F
+      </label>
+    </div>
+
+    <div id="result" aria-live="polite" aria-atomic="true"></div>
   </div>
 
   <script>
+    // Mapping weather codes to icon and description (Open-Meteo weathercode meanings):
+    // See: https://open-meteo.com/en/docs#latitude=52.52&longitude=13.41&current_weather=true
+    const weatherCodeMap = {
+      0: { icon: "☀️", desc: "Clear sky" },
+      1: { icon: "🌤️", desc: "Mainly clear" },
+      2: { icon: "⛅", desc: "Partly cloudy" },
+      3: { icon: "☁️", desc: "Overcast" },
+      45: { icon: "🌫️", desc: "Fog" },
+      48: { icon: "🌫️", desc: "Depositing rime fog" },
+      51: { icon: "🌦️", desc: "Light drizzle" },
+      53: { icon: "🌦️", desc: "Moderate drizzle" },
+      55: { icon: "🌧️", desc: "Dense drizzle" },
+      56: { icon: "🌧️❄️", desc: "Light freezing drizzle" },
+      57: { icon: "🌧️❄️", desc: "Dense freezing drizzle" },
+      61: { icon: "🌧️", desc: "Slight rain" },
+      63: { icon: "🌧️", desc: "Moderate rain" },
+      65: { icon: "🌧️", desc: "Heavy rain" },
+      66: { icon: "🌨️", desc: "Light freezing rain" },
+      67: { icon: "🌨️", desc: "Heavy freezing rain" },
+      71: { icon: "🌨️", desc: "Slight snow fall" },
+      73: { icon: "🌨️", desc: "Moderate snow fall" },
+      75: { icon: "❄️", desc: "Heavy snow fall" },
+      77: { icon: "❄️", desc: "Snow grains" },
+      80: { icon: "🌧️", desc: "Slight rain showers" },
+      81: { icon: "🌧️", desc: "Moderate rain showers" },
+      82: { icon: "🌧️", desc: "Violent rain showers" },
+      85: { icon: "🌨️", desc: "Slight snow showers" },
+      86: { icon: "🌨️", desc: "Heavy snow showers" },
+      95: { icon: "⛈️", desc: "Thunderstorm" },
+      96: { icon: "⛈️", desc: "Thunderstorm with slight hail" },
+      99: { icon: "⛈️", desc: "Thunderstorm with heavy hail" }
+    };
+
+    function weatherIcon(code) {
+      if (weatherCodeMap.hasOwnProperty(code)) {
+        return weatherCodeMap[code].icon;
+      }
+      return "❓";
+    }
+    function weatherDescription(code) {
+      if (weatherCodeMap.hasOwnProperty(code)) {
+        return weatherCodeMap[code].desc;
+      }
+      return "Unknown weather";
+    }
+
+    // Convert Celsius <> Fahrenheit
+    function cToF(c) {
+      return (c * 9) / 5 + 32;
+    }
+    function fToC(f) {
+      return ((f - 32) * 5) / 9;
+    }
+
+    // Format date as Day Mon DD (e.g. Tue Mar 23)
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      const options = { weekday: "short", month: "short", day: "numeric" };
+      return date.toLocaleDateString(undefined, options);
+    }
+
     // Fetch coordinates from geocoding API (Open-Meteo)
     async function getCoordinates(city) {
       const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`;
@@ -66,74 +192,174 @@
         longitude: data.results[0].longitude,
         name: data.results[0].name,
         country: data.results[0].country,
+        timezone: data.results[0].timezone || "UTC"
       };
     }
 
-    // Fetch current weather
-    async function getWeather(lat, lon) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relative_humidity_2m`;
+    // Fetch weather data for coordinates
+    async function getWeather(latitude, longitude, timezone) {
+      // Fetch current weather and daily forecast for next 3 days
+      // Parameters: temperature_2m_max, temperature_2m_min, weathercode for daily forecast
+      // current_weather=true for current weather
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&timezone=${encodeURIComponent(timezone)}&daily=temperature_2m_max,temperature_2m_min,weathercode&forecast_days=4`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Weather API error");
       }
-      const data = await response.json();
-      return data;
+      return response.json();
     }
 
-    function findHumidityForCurrentHour(hourly, currentTime) {
-      // hourly.time is an array of ISO strings (UTC)
-      // currentTime is in UTC (ISO string)
-      const idx = hourly.time.findIndex(t => t === currentTime);
-      return idx !== -1 ? hourly.relative_humidity_2m[idx] : null;
-    }
+    // Render the weather result
+    function renderWeather(data, cityName, unit) {
+      const current = data.current_weather;
+      const daily = data.daily;
 
-    document.getElementById("weather-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "";
-      const cityName = document.getElementById("city-input").value.trim();
-      if (!cityName) return;
-      resultDiv.innerHTML =
-        '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
-
-      try {
-        // Get city coordinates
-        const location = await getCoordinates(cityName);
-
-        // Get weather data
-        const weatherData = await getWeather(location.latitude, location.longitude);
-        const currentWeather = weatherData.current_weather;
-        if (!currentWeather) throw new Error("Current weather data unavailable");
-
-        // Find humidity for the exact current hour (UTC)
-        const hourly = weatherData.hourly;
-        let humidity = null;
-
-        // Determine UTC current hour in ISO string format truncated to hour (YYYY-MM-DDTHH:00)
-        const currentUTCDate = new Date(currentWeather.time + "Z");
-        const currentHourISO = currentUTCDate.toISOString().slice(0, 13) + ":00";
-
-        humidity = findHumidityForCurrentHour(hourly, currentHourISO);
-        if (humidity === null) {
-          humidity = "N/A";
-        } else {
-          humidity += "%";
-        }
-
-        // Show results
-        resultDiv.innerHTML = `
-          <div class="card border-primary">
-            <div class="card-body">
-              <h5 class="card-title mb-3">${location.name}, ${location.country}</h5>
-              <p class="card-text mb-2">Temperature: <strong>${currentWeather.temperature.toFixed(1)}°C</strong></p>
-              <p class="card-text mb-0">Humidity: <strong>${humidity}</strong></p>
-            </div>
-          </div>
-        `;
-      } catch (error) {
-        resultDiv.innerHTML = `<div class="alert alert-danger" role="alert">${error.message}</div>`;
+      // Current temperature in selected unit
+      let currentTemp = current.temperature;
+      let tempUnitSymbol = "°C";
+      if (unit === "fahrenheit") {
+        currentTemp = cToF(currentTemp);
+        tempUnitSymbol = "°F";
       }
-    });
+      currentTemp = currentTemp.toFixed(1);
+
+      // Current weather icon and description
+      const currentIcon = weatherIcon(current.weathercode);
+      const currentDesc = weatherDescription(current.weathercode);
+
+      // Build current weather HTML
+      let html = `<div class="current-weather" role="region" aria-label="Current weather in ${cityName}">
+        <h3 class="mb-2">${cityName}</h3>
+        <div class="d-flex justify-content-center align-items-center mb-1">
+          <span class="weather-icon" aria-hidden="true">${currentIcon}</span>
+          <span style="font-size: 2rem; font-weight: 600;">${currentTemp}${tempUnitSymbol}</span>
+        </div>
+        <div><em>${currentDesc}</em></div>
+        <small>Humidity: ${data.current_weather.relativehumidity ?? '-'}%</small>
+      </div>`;
+
+      // Prepare forecast rows (skip today, take next 3 days)
+      html += `<div class="forecast-section" role="region" aria-label="3-day weather forecast">
+        <h4 class="mt-4 mb-2">3-Day Forecast</h4>
+        <table class="forecast-table" role="table">
+          <thead>
+            <tr>
+              <th role="columnheader">Day</th>
+              <th role="columnheader" aria-label="Weather conditions">Condition</th>
+              <th role="columnheader">Max Temp</th>
+              <th role="columnheader">Min Temp</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      // We have 4 days forecast including today, show next 3 days indexed 1,2,3
+      for (let i = 1; i <= 3; i++) {
+        let day = daily.time[i];
+        let maxTemp = daily.temperature_2m_max[i];
+        let minTemp = daily.temperature_2m_min[i];
+        let weatherCode = daily.weathercode[i];
+
+        if (unit === "fahrenheit") {
+          maxTemp = cToF(maxTemp);
+          minTemp = cToF(minTemp);
+        }
+        html += `<tr>
+          <td>${formatDate(day)}</td>
+          <td><span class="weather-icon" aria-hidden="true">${weatherIcon(weatherCode)}</span><span class="visually-hidden">${weatherDescription(weatherCode)}</span></td>
+          <td>${maxTemp.toFixed(1)}${tempUnitSymbol}</td>
+          <td>${minTemp.toFixed(1)}${tempUnitSymbol}</td>
+        </tr>`;
+      }
+      html += "</tbody></table></div>";
+
+      return html;
+    }
+
+    // Show error messages
+    function renderError(message) {
+      return `<div class="error-message" role="alert">${message}</div>`;
+    }
+
+    // Add relative humidity to current weather (currently not exposed in current_weather)
+    // Instead, fetch hourly relativehumidity_2m for current hour (approximate)
+    async function getHumidity(latitude, longitude, timezone) {
+      const now = new Date();
+      const hourISO = now.toISOString().slice(0, 13) + ":00";
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=relativehumidity_2m&timezone=${encodeURIComponent(timezone)}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (!data.hourly || !data.hourly.relativehumidity_2m) return null;
+
+        let idx = data.hourly.time.indexOf(hourISO);
+        if (idx === -1) {
+          // fallback: use closest hour
+          idx = data.hourly.time.findIndex(t => t.startsWith(hourISO.slice(0, 10) + "T" + now.getHours().toString().padStart(2, "0")));
+        }
+        if (idx !== -1) {
+          return data.hourly.relativehumidity_2m[idx];
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    }
+
+    (function () {
+      const form = document.getElementById("weather-form");
+      const cityInput = document.getElementById("city-input");
+      const resultDiv = document.getElementById("result");
+      const unitRadios = document.querySelectorAll('input[name="unit"]');
+
+      let lastData = null;
+      let lastCity = "";
+      let lastUnit = "celsius";
+
+      // Update displayed weather when unit toggled
+      function updateUnits(unit) {
+        lastUnit = unit;
+        if (lastData && lastCity) {
+          resultDiv.innerHTML = renderWeather(lastData, lastCity, unit);
+        }
+      }
+
+      unitRadios.forEach(radio => {
+        radio.addEventListener("change", () => {
+          if (radio.checked) {
+            updateUnits(radio.value);
+          }
+        });
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const city = cityInput.value.trim();
+        if (!city) return;
+        resultDiv.textContent = "Loading...";
+
+        try {
+          const coords = await getCoordinates(city);
+          const weatherData = await getWeather(coords.latitude, coords.longitude, coords.timezone);
+          // Attempt to get humidity from hourly info (best effort)
+          let humidity = await getHumidity(coords.latitude, coords.longitude, coords.timezone);
+          if (humidity !== null) {
+            weatherData.current_weather.relativehumidity = humidity;
+          }
+          lastData = weatherData;
+          lastCity = `${coords.name}, ${coords.country}`;
+          // Display with current selected unit
+          const selectedUnit = document.querySelector('input[name="unit"]:checked').value;
+          lastUnit = selectedUnit;
+          resultDiv.innerHTML = renderWeather(weatherData, lastCity, selectedUnit);
+
+        } catch (err) {
+          resultDiv.innerHTML = renderError(err.message || "Error fetching weather");
+          lastData = null;
+          lastCity = "";
+        }
+      });
+    })();
   </script>
 </body>
 </html>
