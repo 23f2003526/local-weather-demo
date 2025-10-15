@@ -4,361 +4,503 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>City Weather - Open-Meteo</title>
-  <!-- Bootstrap 5 CSS -->
+  <meta name="description" content="Simple weather dashboard for current conditions and a 3-day forecast using Open-Meteo." />
   <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
-    integrity="sha384-ENjdO4Dr2bkBIFxQpeo7F6AHMGn5QD6N5Dk6MZ6E+ogmHZv+hNeJo0ieGizqPLForn"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
     crossorigin="anonymous"
   />
   <style>
-    body {
+    :root{
+      --card-max: 540px;
+      --shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1);
+      --muted: #6c757d;
+    }
+    html, body {
       background: #f8f9fa;
-      min-height: 100vh;
+      min-height: 100%;
+    }
+    body {
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       padding: 2rem;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     }
     .weather-card {
-      max-width: 420px;
+      max-width: var(--card-max);
       width: 100%;
-      padding: 1.5rem 1.5rem 2rem 1.5rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1);
-      background: white;
+      padding: 1.25rem 1.25rem 1.5rem 1.25rem;
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow);
+      background: #fff;
+    }
+    .title-row {
       display: flex;
-      flex-direction: column;
+      align-items: baseline;
+      justify-content: space-between;
       gap: 1rem;
+      margin-bottom: .25rem;
     }
-    h2 {
-      font-weight: 600;
-    }
-    #result {
-      margin-top: 0.5rem;
-    }
-    .current-weather, .forecast-section {
-      text-align: center;
-    }
-    .weather-icon {
-      vertical-align: middle;
-      width: 48px;
-      height: 48px;
-      margin-right: 0.5rem;
+    h1 {
+      font-size: 1.35rem;
+      margin: 0;
+      font-weight: 700;
     }
     .temp-toggle {
-      margin-bottom: 1rem;
       user-select: none;
+    }
+    .temp-toggle .form-check {
+      display: inline-flex;
+      align-items: center;
+      margin: 0 .5rem 0 0;
+    }
+    .temp-toggle input[type="radio"] {
+      cursor: pointer;
     }
     .temp-toggle label {
       cursor: pointer;
-      margin-right: 1.5rem;
+      margin-left: .25rem;
       font-weight: 500;
     }
-    .forecast-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.5rem;
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .5rem;
+      margin-top: .75rem;
     }
-    .forecast-table th,
-    .forecast-table td {
-      padding: 0.4rem;
-      border: 1px solid #dee2e6;
-      vertical-align: middle;
-      font-size: 0.9rem;
+    .muted {
+      color: var(--muted);
+      font-size: .9rem;
     }
-    .forecast-table th {
-      background-color: #e9ecef;
+    .section {
+      margin-top: 1rem;
+    }
+    .current-wrap {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .current-icon {
+      font-size: 44px; /* emoji size */
+      line-height: 1;
+    }
+    .current-main {
+      flex: 1;
+    }
+    .current-temp {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    .small-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem 1.25rem;
+      margin-top: .25rem;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .city-line {
       font-weight: 600;
     }
     .error-message {
       color: #dc3545;
       font-weight: 600;
+      margin-top: .5rem;
     }
-    small {
-      display: block;
-      margin-top: 0.25rem;
-      color: #6c757d;
+    .loading {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .spinner {
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #dee2e6;
+      border-top-color: #6c757d;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .forecast-section h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+    .forecast-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .forecast-table th,
+    .forecast-table td {
+      padding: 0.5rem;
+      border: 1px solid #e9ecef;
+      vertical-align: middle;
+      font-size: 0.95rem;
+      text-align: left;
+    }
+    .forecast-table th {
+      background: #f1f3f5;
+      font-weight: 700;
+    }
+    .ficon {
+      font-size: 22px; /* emoji size for forecast */
+      margin-right: .35rem;
+      line-height: 1;
+    }
+    .footer-note {
+      margin-top: .75rem;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    @media (max-width: 480px) {
+      .current-temp { font-size: 1.75rem; }
+      .current-icon { font-size: 40px; }
+      .ficon { font-size: 20px; }
     }
   </style>
 </head>
 <body>
-  <div class="weather-card">
-    <h2 class="mb-2 text-center">Check Current Weather</h2>
-    <form id="weather-form" class="mb-3" autocomplete="off">
-      <div class="mb-3">
-        <label for="city-input" class="form-label">City Name</label>
-        <input
-          type="text"
-          class="form-control"
-          id="city-input"
-          placeholder="Enter city name"
-          required
-          aria-label="Enter city name"
-        />
+  <main class="weather-card">
+    <div class="title-row">
+      <h1>City Weather — Open‑Meteo</h1>
+      <div class="temp-toggle" role="group" aria-label="Temperature units">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="unit" id="unitC" value="C" checked />
+          <label class="form-check-label" for="unitC">°C</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="unit" id="unitF" value="F" />
+          <label class="form-check-label" for="unitF">°F</label>
+        </div>
       </div>
-      <button type="submit" class="btn btn-primary w-100" aria-label="Get weather for city">Get Weather</button>
-    </form>
-
-    <div class="temp-toggle d-flex justify-content-center" aria-label="Temperature unit toggle">
-      <label>
-        <input type="radio" name="unit" value="celsius" checked /> °C
-      </label>
-      <label>
-        <input type="radio" name="unit" value="fahrenheit" /> °F
-      </label>
     </div>
 
-    <div id="result" aria-live="polite" aria-atomic="true"></div>
-  </div>
+    <form id="searchForm" class="search-row" autocomplete="off" novalidate>
+      <input id="cityInput" type="text" class="form-control" placeholder="Enter a city (e.g., London)" aria-label="City name" required />
+      <button id="goBtn" type="submit" class="btn btn-primary">Get Weather</button>
+    </form>
+    <div id="status" class="muted" aria-live="polite"></div>
+    <div id="error" class="error-message" role="alert" style="display:none;"></div>
+
+    <section id="current" class="section" aria-live="polite"></section>
+
+    <section id="forecast" class="section forecast-section"></section>
+
+    <div class="footer-note">
+      Data by Open‑Meteo (weather) and Open‑Meteo Geocoding. Client‑side only; ideal for GitHub Pages.
+    </div>
+  </main>
 
   <script>
-    // Mapping weather codes to icon and description (Open-Meteo weathercode meanings):
-    // See: https://open-meteo.com/en/docs#latitude=52.52&longitude=13.41&current_weather=true
-    const weatherCodeMap = {
-      0: { icon: "☀️", desc: "Clear sky" },
-      1: { icon: "🌤️", desc: "Mainly clear" },
-      2: { icon: "⛅", desc: "Partly cloudy" },
-      3: { icon: "☁️", desc: "Overcast" },
-      45: { icon: "🌫️", desc: "Fog" },
-      48: { icon: "🌫️", desc: "Depositing rime fog" },
-      51: { icon: "🌦️", desc: "Light drizzle" },
-      53: { icon: "🌦️", desc: "Moderate drizzle" },
-      55: { icon: "🌧️", desc: "Dense drizzle" },
-      56: { icon: "🌧️❄️", desc: "Light freezing drizzle" },
-      57: { icon: "🌧️❄️", desc: "Dense freezing drizzle" },
-      61: { icon: "🌧️", desc: "Slight rain" },
-      63: { icon: "🌧️", desc: "Moderate rain" },
-      65: { icon: "🌧️", desc: "Heavy rain" },
-      66: { icon: "🌨️", desc: "Light freezing rain" },
-      67: { icon: "🌨️", desc: "Heavy freezing rain" },
-      71: { icon: "🌨️", desc: "Slight snow fall" },
-      73: { icon: "🌨️", desc: "Moderate snow fall" },
-      75: { icon: "❄️", desc: "Heavy snow fall" },
-      77: { icon: "❄️", desc: "Snow grains" },
-      80: { icon: "🌧️", desc: "Slight rain showers" },
-      81: { icon: "🌧️", desc: "Moderate rain showers" },
-      82: { icon: "🌧️", desc: "Violent rain showers" },
-      85: { icon: "🌨️", desc: "Slight snow showers" },
-      86: { icon: "🌨️", desc: "Heavy snow showers" },
-      95: { icon: "⛈️", desc: "Thunderstorm" },
-      96: { icon: "⛈️", desc: "Thunderstorm with slight hail" },
-      99: { icon: "⛈️", desc: "Thunderstorm with heavy hail" }
-    };
-
-    function weatherIcon(code) {
-      if (weatherCodeMap.hasOwnProperty(code)) {
-        return weatherCodeMap[code].icon;
-      }
-      return "❓";
-    }
-    function weatherDescription(code) {
-      if (weatherCodeMap.hasOwnProperty(code)) {
-        return weatherCodeMap[code].desc;
-      }
-      return "Unknown weather";
-    }
-
-    // Convert Celsius <> Fahrenheit
-    function cToF(c) {
-      return (c * 9) / 5 + 32;
-    }
-    function fToC(f) {
-      return ((f - 32) * 5) / 9;
-    }
-
-    // Format date as Day Mon DD (e.g. Tue Mar 23)
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      const options = { weekday: "short", month: "short", day: "numeric" };
-      return date.toLocaleDateString(undefined, options);
-    }
-
-    // Fetch coordinates from geocoding API (Open-Meteo)
-    async function getCoordinates(city) {
-      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Geocoding API error");
-      }
-      const data = await response.json();
-      if (!data.results || data.results.length === 0) {
-        throw new Error("City not found");
-      }
-      return {
-        latitude: data.results[0].latitude,
-        longitude: data.results[0].longitude,
-        name: data.results[0].name,
-        country: data.results[0].country,
-        timezone: data.results[0].timezone || "UTC"
+    (function() {
+      const els = {
+        form: document.getElementById('searchForm'),
+        input: document.getElementById('cityInput'),
+        status: document.getElementById('status'),
+        error: document.getElementById('error'),
+        current: document.getElementById('current'),
+        forecast: document.getElementById('forecast'),
+        unitC: document.getElementById('unitC'),
+        unitF: document.getElementById('unitF'),
+        goBtn: document.getElementById('goBtn'),
       };
-    }
 
-    // Fetch weather data for coordinates
-    async function getWeather(latitude, longitude, timezone) {
-      // Fetch current weather and daily forecast for next 3 days
-      // Parameters: temperature_2m_max, temperature_2m_min, weathercode for daily forecast
-      // current_weather=true for current weather
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&timezone=${encodeURIComponent(timezone)}&daily=temperature_2m_max,temperature_2m_min,weathercode&forecast_days=4`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Weather API error");
-      }
-      return response.json();
-    }
+      const state = {
+        unit: 'C',
+        place: null,   // { name, country, latitude, longitude, timezone }
+        data: null     // raw Open-Meteo response
+      };
 
-    // Render the weather result
-    function renderWeather(data, cityName, unit) {
-      const current = data.current_weather;
-      const daily = data.daily;
-
-      // Current temperature in selected unit
-      let currentTemp = current.temperature;
-      let tempUnitSymbol = "°C";
-      if (unit === "fahrenheit") {
-        currentTemp = cToF(currentTemp);
-        tempUnitSymbol = "°F";
-      }
-      currentTemp = currentTemp.toFixed(1);
-
-      // Current weather icon and description
-      const currentIcon = weatherIcon(current.weathercode);
-      const currentDesc = weatherDescription(current.weathercode);
-
-      // Build current weather HTML
-      let html = `<div class="current-weather" role="region" aria-label="Current weather in ${cityName}">
-        <h3 class="mb-2">${cityName}</h3>
-        <div class="d-flex justify-content-center align-items-center mb-1">
-          <span class="weather-icon" aria-hidden="true">${currentIcon}</span>
-          <span style="font-size: 2rem; font-weight: 600;">${currentTemp}${tempUnitSymbol}</span>
-        </div>
-        <div><em>${currentDesc}</em></div>
-        <small>Humidity: ${data.current_weather.relativehumidity ?? '-'}%</small>
-      </div>`;
-
-      // Prepare forecast rows (skip today, take next 3 days)
-      html += `<div class="forecast-section" role="region" aria-label="3-day weather forecast">
-        <h4 class="mt-4 mb-2">3-Day Forecast</h4>
-        <table class="forecast-table" role="table">
-          <thead>
-            <tr>
-              <th role="columnheader">Day</th>
-              <th role="columnheader" aria-label="Weather conditions">Condition</th>
-              <th role="columnheader">Max Temp</th>
-              <th role="columnheader">Min Temp</th>
-            </tr>
-          </thead>
-          <tbody>`;
-
-      // We have 4 days forecast including today, show next 3 days indexed 1,2,3
-      for (let i = 1; i <= 3; i++) {
-        let day = daily.time[i];
-        let maxTemp = daily.temperature_2m_max[i];
-        let minTemp = daily.temperature_2m_min[i];
-        let weatherCode = daily.weathercode[i];
-
-        if (unit === "fahrenheit") {
-          maxTemp = cToF(maxTemp);
-          minTemp = cToF(minTemp);
+      // Weather code to description (Open-Meteo WMO)
+      function wmoDescription(code) {
+        const groups = [
+          [[0], 'Clear sky'],
+          [[1], 'Mainly clear'],
+          [[2], 'Partly cloudy'],
+          [[3], 'Overcast'],
+          [[45,48], 'Fog'],
+          [[51,53,55], 'Drizzle'],
+          [[56,57], 'Freezing drizzle'],
+          [[61,63,65], 'Rain'],
+          [[66,67], 'Freezing rain'],
+          [[71,73,75], 'Snowfall'],
+          [[77], 'Snow grains'],
+          [[80,81,82], 'Rain showers'],
+          [[85,86], 'Snow showers'],
+          [[95], 'Thunderstorm'],
+          [[96,99], 'Thunderstorm with hail']
+        ];
+        for (const [codes, text] of groups) {
+          if (codes.includes(code)) return text;
         }
-        html += `<tr>
-          <td>${formatDate(day)}</td>
-          <td><span class="weather-icon" aria-hidden="true">${weatherIcon(weatherCode)}</span><span class="visually-hidden">${weatherDescription(weatherCode)}</span></td>
-          <td>${maxTemp.toFixed(1)}${tempUnitSymbol}</td>
-          <td>${minTemp.toFixed(1)}${tempUnitSymbol}</td>
-        </tr>`;
-      }
-      html += "</tbody></table></div>";
-
-      return html;
-    }
-
-    // Show error messages
-    function renderError(message) {
-      return `<div class="error-message" role="alert">${message}</div>`;
-    }
-
-    // Add relative humidity to current weather (currently not exposed in current_weather)
-    // Instead, fetch hourly relativehumidity_2m for current hour (approximate)
-    async function getHumidity(latitude, longitude, timezone) {
-      const now = new Date();
-      const hourISO = now.toISOString().slice(0, 13) + ":00";
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=relativehumidity_2m&timezone=${encodeURIComponent(timezone)}`;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (!data.hourly || !data.hourly.relativehumidity_2m) return null;
-
-        let idx = data.hourly.time.indexOf(hourISO);
-        if (idx === -1) {
-          // fallback: use closest hour
-          idx = data.hourly.time.findIndex(t => t.startsWith(hourISO.slice(0, 10) + "T" + now.getHours().toString().padStart(2, "0")));
-        }
-        if (idx !== -1) {
-          return data.hourly.relativehumidity_2m[idx];
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    }
-
-    (function () {
-      const form = document.getElementById("weather-form");
-      const cityInput = document.getElementById("city-input");
-      const resultDiv = document.getElementById("result");
-      const unitRadios = document.querySelectorAll('input[name="unit"]');
-
-      let lastData = null;
-      let lastCity = "";
-      let lastUnit = "celsius";
-
-      // Update displayed weather when unit toggled
-      function updateUnits(unit) {
-        lastUnit = unit;
-        if (lastData && lastCity) {
-          resultDiv.innerHTML = renderWeather(lastData, lastCity, unit);
-        }
+        return 'Unknown';
       }
 
-      unitRadios.forEach(radio => {
-        radio.addEventListener("change", () => {
-          if (radio.checked) {
-            updateUnits(radio.value);
-          }
-        });
-      });
+      // Emoji icons for quick, dependency-free visuals
+      function wmoEmoji(code, isDay) {
+        if (code === 0) return isDay ? '☀️' : '🌙';
+        if ([1].includes(code)) return isDay ? '🌤️' : '☁️';
+        if ([2].includes(code)) return isDay ? '⛅' : '☁️';
+        if ([3].includes(code)) return '☁️';
+        if ([45,48].includes(code)) return '🌫️';
+        if ([51,53,55,56,57].includes(code)) return '🌦️';
+        if ([61,63,65,66,67,80,81,82].includes(code)) return '🌧️';
+        if ([71,73,75,77,85,86].includes(code)) return '❄️';
+        if ([95,96,99].includes(code)) return '⛈️';
+        return '🌡️';
+      }
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const city = cityInput.value.trim();
-        if (!city) return;
-        resultDiv.textContent = "Loading...";
-
+      function toF(c) { return (c * 9/5) + 32; }
+      function fmtTemp(c, unit = state.unit) {
+        if (c == null || isNaN(c)) return '—';
+        return unit === 'F' ? Math.round(toF(c)) + '°F' : Math.round(c) + '°C';
+      }
+      function fmtWind(ms) {
+        // Open-Meteo returns wind_speed_10m in km/h if asked; default for current is km/h.
+        // We will keep km/h as-is and label it.
+        return (ms == null || isNaN(ms)) ? '—' : Math.round(ms) + ' km/h';
+      }
+      function formatDate(dStr, tz) {
         try {
-          const coords = await getCoordinates(city);
-          const weatherData = await getWeather(coords.latitude, coords.longitude, coords.timezone);
-          // Attempt to get humidity from hourly info (best effort)
-          let humidity = await getHumidity(coords.latitude, coords.longitude, coords.timezone);
-          if (humidity !== null) {
-            weatherData.current_weather.relativehumidity = humidity;
-          }
-          lastData = weatherData;
-          lastCity = `${coords.name}, ${coords.country}`;
-          // Display with current selected unit
-          const selectedUnit = document.querySelector('input[name="unit"]:checked').value;
-          lastUnit = selectedUnit;
-          resultDiv.innerHTML = renderWeather(weatherData, lastCity, selectedUnit);
-
-        } catch (err) {
-          resultDiv.innerHTML = renderError(err.message || "Error fetching weather");
-          lastData = null;
-          lastCity = "";
+          // dStr is ISO-like, already in requested timezone; display as weekday, day mon.
+          const d = new Date(dStr);
+          return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        } catch {
+          return dStr;
         }
-      });
+      }
+      function formatTime(dStr) {
+        try {
+          const d = new Date(dStr);
+          return d.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
+        } catch {
+          return dStr;
+        }
+      }
+
+      async function geocodeCity(name) {
+        const url = new URL('https://geocoding-api.open-meteo.com/v1/search');
+        url.searchParams.set('name', name);
+        url.searchParams.set('count', '1');
+        url.searchParams.set('language', 'en');
+        url.searchParams.set('format', 'json');
+        const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('Geocoding failed');
+        const json = await res.json();
+        if (!json.results || !json.results.length) {
+          throw new Error('No matching city found');
+        }
+        const r = json.results[0];
+        return {
+          name: r.name,
+          country: r.country_code || r.country || '',
+          latitude: r.latitude,
+          longitude: r.longitude,
+          timezone: r.timezone || 'auto'
+        };
+      }
+
+      async function fetchWeather(lat, lon, timezone = 'auto') {
+        const url = new URL('https://api.open-meteo.com/v1/forecast');
+        url.searchParams.set('latitude', lat);
+        url.searchParams.set('longitude', lon);
+        url.searchParams.set('timezone', timezone || 'auto');
+        // current weather
+        url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day');
+        // daily 4 days (today + next 3) so we can render 3-day forecast excluding today
+        url.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min');
+        url.searchParams.set('forecast_days', '4');
+        const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('Weather request failed');
+        return await res.json();
+      }
+
+      function clearMessages() {
+        els.error.style.display = 'none';
+        els.error.textContent = '';
+        els.status.textContent = '';
+      }
+
+      function setLoading(isLoading) {
+        if (isLoading) {
+          els.status.innerHTML = '<span class="loading"><span class="spinner" aria-hidden="true"></span> Loading…</span>';
+          els.goBtn.disabled = true;
+        } else {
+          els.status.textContent = '';
+          els.goBtn.disabled = false;
+        }
+      }
+
+      function renderCurrent() {
+        els.current.innerHTML = '';
+        if (!state.place || !state.data || !state.data.current) return;
+
+        const c = state.data.current;
+        const cityLine = document.createElement('div');
+        cityLine.className = 'city-line';
+        cityLine.textContent = `${state.place.name}${state.place.country ? ', ' + state.place.country : ''}`;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'current-wrap';
+
+        const icon = document.createElement('div');
+        icon.className = 'current-icon';
+        icon.textContent = wmoEmoji(c.weather_code, c.is_day === 1);
+
+        const main = document.createElement('div');
+        main.className = 'current-main';
+
+        const temp = document.createElement('p');
+        temp.className = 'current-temp';
+        temp.textContent = fmtTemp(c.temperature_2m);
+
+        const sub = document.createElement('div');
+        sub.className = 'small-row';
+        const desc = wmoDescription(c.weather_code);
+        const timeStr = (c.time ? `${formatDate(c.time)} ${formatTime(c.time)}` : '');
+        sub.innerHTML = `
+          <span>${desc}</span>
+          <span>Humidity: ${c.relative_humidity_2m != null ? c.relative_humidity_2m + '%' : '—'}</span>
+          <span>Wind: ${fmtWind(c.wind_speed_10m)}</span>
+          <span>${timeStr}</span>
+        `;
+
+        main.appendChild(temp);
+        main.appendChild(sub);
+        wrap.appendChild(icon);
+        wrap.appendChild(main);
+
+        els.current.appendChild(cityLine);
+        els.current.appendChild(wrap);
+      }
+
+      function renderForecast() {
+        els.forecast.innerHTML = '';
+        if (!state.data || !state.data.daily) return;
+
+        const d = state.data.daily;
+        const dates = d.time || [];
+        const wcodes = d.weather_code || [];
+        const tmax = d.temperature_2m_max || [];
+        const tmin = d.temperature_2m_min || [];
+
+        // Exclude "today" (index 0), show next 3 days if available
+        const rows = [];
+        for (let i = 1; i < Math.min(dates.length, 4); i++) {
+          rows.push({
+            date: dates[i],
+            code: wcodes[i],
+            tmax: tmax[i],
+            tmin: tmin[i]
+          });
+        }
+
+        // If API doesn't return enough, gracefully handle
+        const count = Math.min(rows.length, 3);
+
+        const header = document.createElement('h2');
+        header.textContent = '3‑Day Forecast';
+
+        const table = document.createElement('table');
+        table.className = 'forecast-table';
+        table.setAttribute('aria-label', '3 day forecast');
+
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+          <tr>
+            <th style="width:40%;">Day</th>
+            <th style="width:35%;">Conditions</th>
+            <th style="width:25%;">Min / Max</th>
+          </tr>
+        `;
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        for (let i = 0; i < count; i++) {
+          const r = rows[i];
+          const tr = document.createElement('tr');
+          const isDay = true; // daily icon - show a day icon for simplicity
+          tr.innerHTML = `
+            <td>${formatDate(r.date)}</td>
+            <td><span class="ficon">${wmoEmoji(r.code, isDay)}</span>${wmoDescription(r.code)}</td>
+            <td>${fmtTemp(r.tmin)} / ${fmtTemp(r.tmax)}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+
+        els.forecast.appendChild(header);
+        els.forecast.appendChild(table);
+      }
+
+      function renderAll() {
+        renderCurrent();
+        renderForecast();
+      }
+
+      async function handleSearch(evt) {
+        evt.preventDefault();
+        clearMessages();
+        const city = (els.input.value || '').trim();
+        if (!city) {
+          els.error.textContent = 'Please enter a city name.';
+          els.error.style.display = 'block';
+          return;
+        }
+
+        setLoading(true);
+        try {
+          const place = await geocodeCity(city);
+          state.place = place;
+          const data = await fetchWeather(place.latitude, place.longitude, place.timezone);
+          state.data = data;
+
+          els.status.textContent = '';
+          els.error.style.display = 'none';
+
+          renderAll();
+          // cache last search for convenience
+          try { localStorage.setItem('lastCity', place.name); } catch {}
+        } catch (e) {
+          els.error.textContent = e.message || 'Unable to fetch weather. Please try again.';
+          els.error.style.display = 'block';
+          els.current.innerHTML = '';
+          els.forecast.innerHTML = '';
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function handleUnitChange() {
+        const newUnit = els.unitF.checked ? 'F' : 'C';
+        if (state.unit !== newUnit) {
+          state.unit = newUnit;
+          renderAll();
+        }
+      }
+
+      // Event listeners
+      els.form.addEventListener('submit', handleSearch);
+      els.unitC.addEventListener('change', handleUnitChange);
+      els.unitF.addEventListener('change', handleUnitChange);
+
+      // Restore last city if available
+      try {
+        const last = localStorage.getItem('lastCity');
+        if (last) {
+          els.input.value = last;
+        }
+      } catch {}
+
+      // Friendly hint
+      els.status.textContent = 'Tip: Try typing Paris, New York, or Tokyo.';
     })();
   </script>
 </body>
